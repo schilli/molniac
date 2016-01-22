@@ -1,0 +1,2 @@
+# molniac
+Manipulate macromolecular structures.
