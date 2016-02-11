@@ -1,0 +1,3 @@
+* Implement PDB reader
+    * residue category detection
+    * correct molecule splitting

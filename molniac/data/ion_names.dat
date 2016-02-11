@@ -1,0 +1,15 @@
+# names of single atom ions that should be considered
+# individual molecules
+
+Li
+F 
+Na
+Mg
+Cl
+K 
+Ca
+Cu
+Zn
+Rb
+I 
+Cs

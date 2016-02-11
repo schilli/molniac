@@ -23,7 +23,7 @@ class Atom(object):
         self.charge    = charge      # partial charge on the atom
         self.category  = category    # sidechain or backbone, etc.
         self.residue   = residue     # reference to the residue the atom belongs to
-        self.neighbors = []          # list of atoms to which a bond exists
+        self.bonds     = []          # list of atoms to which a bond exists
 
         if xyz is None:
             self.xyz = np.zeros(3)
@@ -31,6 +31,5 @@ class Atom(object):
             self.xyz = xyz           # atomic position in angstrom
 
     def __str__(self):
-        s  = "{:6d}".format(self.ID)
-        s += " " + self.name
-        return s
+        return "{:3s} {:6d} {:4.2f} {:5.2f} {:5.2f} {:2s} {:10s} {:8.3f} {:8.3f} {:8.3f}".format(
+                self.name, self.ID, self.occupancy, self.bfac, self.charge, self.element, self.category, *self.xyz)

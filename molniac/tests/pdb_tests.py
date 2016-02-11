@@ -32,7 +32,6 @@ def read_1crn():
     filename = os.path.dirname(testpath) + "/1CRN.pdb"
     molniac.read(filename)
 
-    
 
     print("\tReading 1CRN.pdb \t\t" + status, file=sys.stderr)
 

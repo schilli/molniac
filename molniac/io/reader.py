@@ -15,13 +15,6 @@ def read(filename, **kwargs):
     extension = filename.split('.')[-1]
     if extension in ["pdb", "PDB"]:
         selection = pdb.read(filename, **kwargs)
-
-#        for mol in selection.molecules:
-#            print("mol", mol.ID)
-#            for res in mol.residues:
-#                print("{:3s} {:3d}".format(res.name, res.ID))
-#                for atm in res.atoms:
-#                    print("\t{:3s} {:5d} {:4.2f} {:2s} {:8.3f} {:8.3f} {:8.3f}".format(atm.name, atm.ID, atm.occupancy, atm.element, *atm.xyz))
     else:
         print("Filetype cannot be deduced from extension: {}".format(extension))
         sys.exit(1)
