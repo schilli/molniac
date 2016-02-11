@@ -1,1 +1,3 @@
-from molniac.io.reader import read
+from molniac import load
+
+__all__ = []
