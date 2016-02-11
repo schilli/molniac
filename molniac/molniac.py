@@ -30,6 +30,7 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
             super(Trajectory, self).__init__(other.xyz, top, time=time, unitcell_lengths=unitcell_lengths, unitcell_angles=unitcell_angles)
 
 
+
     def mutate_protein_residue(self, oldres, newres):
         """
         Mutate a protein residue into another protein residue.
@@ -61,8 +62,13 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
 
         ## overlay backbones of both residues
 
+        oldresidue = self.top.atom(oldres_indices[0]).residue
+        newresidue = newrestrj.top._residues[0] 
+
         resSeq = self.top.atom(oldres_indices[0]).residue.resSeq
         backbone_names = ['N', 'CA', 'C']
+        if 'CB' in [atom.name for atom in newresidue.atoms] and 'CB' in [atom.name for atom in oldresidue.atoms]:
+            backbone_names.append('CB')
 
         # ensure correct ordering of backbone atoms
         old_bb_indices = [self.top.select("resSeq {} and name {}".format(resSeq, name))[0] for name in backbone_names]
@@ -70,10 +76,7 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
 
         newrestrj.superpose(self, frame=0, atom_indices=new_bb_indices, ref_atom_indices=old_bb_indices)
 
-        oldres = self.top.atom(oldres_indices[0]).residue
-        newres = newrestrj.top._residues[0] 
- 
-        # set dihedrals
+        # set dihedrals by setting positions of Backbone O and H atoms
         old_O_ndx = self.top.select('resSeq {} and name O'.format(resSeq))[0]
         new_O_ndx = newrestrj.top.select('name O')[0]
         newrestrj._xyz[0,new_O_ndx,:] = self._xyz[0,old_O_ndx,:]
@@ -84,8 +87,34 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
         except IndexError:
             pass
 
+        # If its a C-terminal residue, add OXT atom
+        try:
+            self.topology.residue(oldresidue.index+1)
+        except IndexError:
+            # add to topology
+            atom_O = newresidue.atoms_by_name('O').next()
+            newrestrj.top.add_atom('OXT', atom_O.element, newresidue, serial=newresidue._atoms[-1].serial+1)
+
+            # compute position
+            index_O  = newrestrj.top.select('name O')[0]
+            index_C  = newrestrj.top.select('name C')[0]
+            index_CA = newrestrj.top.select('name CA')[0]
+            pos_O    = newrestrj.xyz[0,index_O,:]
+            pos_C    = newrestrj.xyz[0,index_C,:]
+            pos_CA   = newrestrj.xyz[0,index_CA,:]
+            s        = pos_C - pos_CA
+            v        = pos_O - pos_C
+            cp       = np.dot(v, s) / np.dot(s, s)
+            pos_OXT  = pos_O + 2*cp*s - 2*v
+
+            # add coordinates
+            xyz = np.zeros([1,newrestrj.xyz.shape[1]+1,3])
+            xyz[0,:-1,:] = newrestrj._xyz
+            xyz[0, -1,:] = pos_OXT
+            newrestrj._xyz = xyz
 
 
+        
         ## Update coordinates
 
         # set up some atom counters
@@ -102,67 +131,28 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
         xyz[0,natoms_before:natoms_before+natoms_newres,:] = newrestrj._xyz
         self._xyz = xyz
 
-        # Update topology
-        #
-        # topology attributes:
-        #    _residues 
-        #    _chains
-        #    _bonds
-        #    _atoms
-        #
-        # chain attributes:
-        #    _residues
-        #    index
-        #    topology
-        #
-        # residue attributes:
-        #    _atoms
-        #    index
-        #    name
-        #    chain
-        #    resSeq
-        #    segment_id (only newer versions)
-        #
-        # atom attributes:
-        #    residue
-        #    index
-        #    serial
-        #    name
-        #    element
-
         # set (chain, index, segment_id) of new residue
-        newres.chain  = oldres.chain
-        newres.index  = oldres.index
-        newres.resSeq = oldres.resSeq
+        newresidue.chain  = oldresidue.chain
+        newresidue.index  = oldresidue.index
+        newresidue.resSeq = oldresidue.resSeq
         try:
-            oldres.segment_id = newres.segment_id
+            oldresidue.segment_id = newresidue.segment_id
         except AttributeError:
             # before segment_id attribute was added
             pass
 
         # replace residue in chain and topology
         for i, r in enumerate(self.top._residues):
-            if r is oldres:
-                self.top._residues[i] = newres
+            if r is oldresidue:
+                self.top._residues[i] = newresidue
                 break
-        for i, r in enumerate(newres.chain._residues):
-            if r is oldres:
-                newres.chain._residues[i] = newres
+        for i, r in enumerate(newresidue.chain._residues):
+            if r is oldresidue:
+                newresidue.chain._residues[i] = newresidue
                 break
 
         # replace atoms in topology
         self.top._atoms = self.top._atoms[:natoms_before] + newrestrj.top._atoms + self.top._atoms[natoms_before+natoms_oldres:]
-
-#        # replace atoms in chain
-#        atoms    = []
-#        inserted = False
-#        for i, a in enumerate(newres.chain._atoms):
-#            if a.residue is not oldres:
-#                atoms.append(a)
-#            elif not inserted:
-#                atoms += newres._atoms
-#                inserted = True
-#        newres.chain._atoms = atoms
 
         # renumber atoms
         for i, atom in enumerate(self.top._atoms):
@@ -174,29 +164,8 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
         self.top.create_standard_bonds()
         self.top.create_disulfide_bonds(self.xyz[0,:,:])
 
-        return newrestrj
 
 
-
-#    def _get_disulfide_bonds(self):
-#        """
-#        Get all disulfide bonds from the bond list
-#        """
-#        disulfide_bonds = []
-#        for atom1, atom2 in self.top._bonds:
-#            if atom1.element.symbol == 'S' and atom2.element.symbol == 'S':
-#                disulfide_bonds.append((atom1, atom2))
-#
-#        return disulfide_bonds
-#
-#
-#    def _set_disulfide_bonds(self, disulfide_bonds):
-#        """
-#        Set all disulfide bonds 
-#        """
-#        pass
-
- 
 
 
 
