@@ -108,7 +108,7 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
             pos_OXT  = pos_O + 2*cp*s - 2*v
 
             # add coordinates
-            xyz = np.zeros([1,newrestrj.xyz.shape[1]+1,3])
+            xyz = np.zeros([1,newrestrj.xyz.shape[1]+1,3], dtype=self._xyz.dtype)
             xyz[0,:-1,:] = newrestrj._xyz
             xyz[0, -1,:] = pos_OXT
             newrestrj._xyz = xyz
@@ -125,7 +125,7 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
 
         # copy over unaffected coordinates and insert new coordinates
         # if we have more than a single frame loaded, all but the first will be discarded
-        xyz = np.zeros([1, natoms_final, 3])
+        xyz = np.zeros([1, natoms_final, 3], dtype=self._xyz.dtype)
         xyz[0,:natoms_before                           ,:] = self._xyz[0,:natoms_before              ,:]
         xyz[0,natoms_before+natoms_newres:             ,:] = self._xyz[0,natoms_before+natoms_oldres:,:]
         xyz[0,natoms_before:natoms_before+natoms_newres,:] = newrestrj._xyz
