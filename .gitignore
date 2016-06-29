@@ -63,3 +63,7 @@ target/
 
 # swap files
 *.swp
+
+# test output files
+molniac/tests/1GNUh_K13S488.pdb
+molniac/tests/1GNUh_K13S488_F62S594.pdb
