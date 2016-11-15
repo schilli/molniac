@@ -69,6 +69,8 @@ class Trajectory(mdtraj.core.trajectory.Trajectory):
         backbone_names = ['N', 'CA', 'C']
         if 'CB' in [atom.name for atom in newresidue.atoms] and 'CB' in [atom.name for atom in oldresidue.atoms]:
             backbone_names.append('CB')
+        elif 'HA' in [atom.name for atom in newresidue.atoms] and 'HA' in [atom.name for atom in oldresidue.atoms]:
+            backbone_names.append('HA')
 
         # ensure correct ordering of backbone atoms
         old_bb_indices = [self.top.select("resSeq {} and name {}".format(resSeq, name))[0] for name in backbone_names]
